@@ -143,7 +143,7 @@ func (mw *memoryWrapper) getUint(addr int64) *big.Int {
 		log.Warn("Tracer accessed out of bound memory", "available", mw.memory.Len(), "offset", addr, "size", 32)
 		return new(big.Int)
 	}
-	return new(big.Int).SetBytes(mw.memory.GetPtr(addr, 32))
+	return new(big.Int).SetBytes(mw.memory.GetCopy(addr, 32))
 }
 
 // pushObject assembles a JSVM object wrapping a swappable memory and pushes it

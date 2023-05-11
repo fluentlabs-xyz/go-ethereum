@@ -338,7 +338,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 	utils.StartNode(ctx, stack)
 
 	// Unlock any account specifically requested
-	unlockAccounts(ctx, stack)
+	unlockAccounts(ctx, stack, backend)
 
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
@@ -430,7 +430,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 }
 
 // unlockAccounts unlocks any account specifically requested.
-func unlockAccounts(ctx *cli.Context, stack *node.Node) {
+func unlockAccounts(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 	var unlocks []string
 	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {
@@ -445,7 +445,15 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
 	// Print warning log to user and skip unlocking.
 	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
-		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+		allowedDevNets := map[uint64]bool{
+			1337: true,
+			99:   true,
+		}
+		if !allowedDevNets[backend.ChainConfig().ChainID.Uint64()] {
+			utils.Fatalf("Account unlock with HTTP access is forbidden!")
+		} else {
+			log.Warn("Account unlock with HTTP access is allowed due to devnet chain id. Don't use this chain id on production!")
+		}
 	}
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	passwords := utils.MakePasswordList(ctx)

@@ -21,8 +21,14 @@ import (
 	"fmt"
 )
 
+const (
+	errCodeOutOfGas uint32 = 100 + iota
+	errCodeGasParamsMismatch
+)
+
 // List evm execution errors
 var (
+	ErrUnknownError             = errors.New("unknown error")
 	ErrOutOfGas                 = errors.New("out of gas")
 	ErrCodeStoreOutOfGas        = errors.New("contract creation code storage out of gas")
 	ErrDepth                    = errors.New("max call depth exceeded")
@@ -36,7 +42,38 @@ var (
 	ErrGasUintOverflow          = errors.New("gas uint64 overflow")
 	ErrInvalidCode              = errors.New("invalid code: must not begin with 0xef")
 	ErrNonceUintOverflow        = errors.New("nonce uint64 overflow")
+	ErrBadInputParams           = errors.New("bad input params")
+	ErrBadWasmBinary            = errors.New("bas wasm binary")
+	ErrEntrypointNotFound       = errors.New("entrypoint not found")
+
+	// errStopToken is an internal token indicating interpreter loop termination,
+	// never returned to outside callers.
+	errStopToken = errors.New("stop token")
 )
+
+var evmUnwrapableErrors = map[error]bool{
+	ErrUnknownError:             true,
+	ErrOutOfGas:                 true,
+	ErrCodeStoreOutOfGas:        true,
+	ErrDepth:                    true,
+	ErrInsufficientBalance:      true,
+	ErrContractAddressCollision: true,
+	ErrExecutionReverted:        true,
+	ErrMaxCodeSizeExceeded:      true,
+	ErrInvalidJump:              true,
+	ErrWriteProtection:          true,
+	ErrReturnDataOutOfBounds:    true,
+	ErrGasUintOverflow:          true,
+	ErrInvalidCode:              true,
+	ErrNonceUintOverflow:        true,
+	ErrBadInputParams:           true,
+	ErrBadWasmBinary:            true,
+	ErrEntrypointNotFound:       true,
+}
+
+func IsEvmError(err error) bool {
+	return evmUnwrapableErrors[err]
+}
 
 // ErrStackUnderflow wraps an evm error when the items on the stack less
 // than the minimal requirement.

@@ -23,6 +23,10 @@ import (
 	"github.com/scroll-tech/go-ethereum/common/math"
 )
 
+type VirtualInterpreter interface {
+	Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error)
+}
+
 // calcMemSize64 calculates the required memory size, and returns
 // the size and whether the result overflowed uint64
 func calcMemSize64(off, l *uint256.Int) (uint64, bool) {

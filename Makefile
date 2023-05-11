@@ -46,9 +46,12 @@ clean:
 
 devtools:
 	env GOBIN= go install golang.org/x/tools/cmd/stringer@latest
-	env GOBIN= go install github.com/kevinburke/go-bindata/go-bindata@latest
 	env GOBIN= go install github.com/fjl/gencodec@latest
 	env GOBIN= go install github.com/golang/protobuf/protoc-gen-go@latest
 	env GOBIN= go install ./cmd/abigen
 	@type "solc" 2> /dev/null || echo 'Please install solc'
 	@type "protoc" 2> /dev/null || echo 'Please install protoc'
+
+dev-clean:
+	rm -rf ./datadir
+	go run ./cmd/geth --datadir=./datadir init ./genesis/devnet.json

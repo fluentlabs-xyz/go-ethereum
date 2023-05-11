@@ -115,7 +115,7 @@ type EVM struct {
 	Config Config
 	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
-	interpreter *EVMInterpreter
+	interpreter VirtualInterpreter
 	// abort is used to abort the EVM calling operations
 	// NOTE: must be set atomically
 	abort int32
@@ -128,15 +128,20 @@ type EVM struct {
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
 func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig *params.ChainConfig, config Config) *EVM {
+	chainRules := chainConfig.Rules(blockCtx.BlockNumber)
 	evm := &EVM{
 		Context:     blockCtx,
 		TxContext:   txCtx,
 		StateDB:     statedb,
 		Config:      config,
 		chainConfig: chainConfig,
-		chainRules:  chainConfig.Rules(blockCtx.BlockNumber),
+		chainRules:  chainRules,
 	}
-	evm.interpreter = NewEVMInterpreter(evm, config)
+	if chainRules.IsWebAssembly {
+		evm.interpreter = NewWASMInterpreter(evm, config)
+	} else {
+		evm.interpreter = NewEVMInterpreter(evm, config)
+	}
 	return evm
 }
 
@@ -159,7 +164,7 @@ func (evm *EVM) Cancelled() bool {
 }
 
 // Interpreter returns the current interpreter
-func (evm *EVM) Interpreter() *EVMInterpreter {
+func (evm *EVM) Interpreter() VirtualInterpreter {
 	return evm.interpreter
 }
 
