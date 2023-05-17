@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/tetratelabs/wazero/api"
 	"io"
 	"math/big"
 	"strings"
@@ -529,9 +528,9 @@ func FormatLogs(logs []*StructLog) []*types.StructLogRes {
 }
 
 type WASMLogger interface {
-	CaptureGlobalVariable(index uint64, op api.OpCodeInfo, value uint64)
+	CaptureGlobalVariable(index uint64, op OpCodeInfo, value uint64)
 	CaptureGlobalMemoryState(globalMemory map[uint32][]byte)
-	CaptureWasmState(pc uint64, op api.OpCodeInfo, memory *api.MemoryChangeInfo, scope *ScopeContext, depth int, drop, keep uint32)
+	CaptureWasmState(pc uint64, op OpCodeInfo, memory *MemoryChangeInfo, scope *ScopeContext, depth int, drop, keep uint32)
 	CaptureGasState(gasCost uint64, scope *ScopeContext, depth int, err error)
 	CaptureWasmFunctionCall(fnIndex, maxStackHeight, numLocals uint32)
 }

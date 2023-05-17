@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/holiman/uint256"
-	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/sys"
 	zkwasm_wasmi "github.com/wasm0/zkwasm-wasmi"
 	"log"
 )
@@ -59,7 +57,7 @@ func (in *WASMInterpreter) Scope() *ScopeContext {
 	return scope
 }
 
-func (in *WASMInterpreter) GlobalVariable(relativePc uint64, opcode api.OpCodeInfo, value uint64) {
+func (in *WASMInterpreter) GlobalVariable(relativePc uint64, opcode OpCodeInfo, value uint64) {
 	var wasmLogger WASMLogger
 	var ok bool
 	if wasmLogger, ok = in.config.Tracer.(WASMLogger); !ok {
@@ -68,7 +66,7 @@ func (in *WASMInterpreter) GlobalVariable(relativePc uint64, opcode api.OpCodeIn
 	wasmLogger.CaptureGlobalVariable(relativePc, opcode, value)
 }
 
-func (in *WASMInterpreter) BeforeState(relativePc uint64, opcode api.OpCodeInfo, stack []uint64, memory *api.MemoryChangeInfo) {
+func (in *WASMInterpreter) BeforeState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo) {
 	evmStack := newstack()
 	defer func() {
 		returnStack(evmStack)
@@ -85,7 +83,7 @@ func (in *WASMInterpreter) BeforeState(relativePc uint64, opcode api.OpCodeInfo,
 	wasmLogger.CaptureWasmState(relativePc, opcode, memory, scope, in.evm.depth, 0, 0)
 }
 
-func (in *WASMInterpreter) AfterState(relativePc uint64, opcode api.OpCodeInfo, stack []uint64, memory *api.MemoryChangeInfo) {
+func (in *WASMInterpreter) AfterState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo) {
 }
 
 func (in *WASMInterpreter) writeMemory(offset, size uint64, value []byte) {
@@ -362,77 +360,53 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) error {
 	return err
 }
 
-func makeFnTypeWithArgValType(argsCount int, argValType api.ValueType) (result []api.ValueType) {
-	result = make([]api.ValueType, 0)
-	for i := 0; i < argsCount; i++ {
-		result = append(result, argValType)
-	}
-	return result
-}
-
-func makeFnTypeI32(args int) (result []api.ValueType) {
-	return makeFnTypeWithArgValType(args, api.ValueTypeI32)
-}
-
-var (
-	wasmFnTypeArgs0 = makeFnTypeI32(0)
-	wasmFnTypeArgs1 = makeFnTypeI32(1)
-	wasmFnTypeArgs2 = makeFnTypeI32(2)
-	wasmFnTypeArgs3 = makeFnTypeI32(3)
-	wasmFnTypeArgs4 = makeFnTypeI32(4)
-	wasmFnTypeArgs5 = makeFnTypeI32(5)
-	wasmFnTypeArgs6 = makeFnTypeI32(6)
-	wasmFnTypeArgs7 = makeFnTypeI32(7)
-	wasmFnTypeArgs8 = makeFnTypeI32(8)
-)
-
-var wasmFunctionTypes = map[OpCode][]api.ValueType{
-	STOP:           wasmFnTypeArgs0,
-	SHA3:           wasmFnTypeArgs3,
-	ADDRESS:        wasmFnTypeArgs1,
-	BALANCE:        wasmFnTypeArgs2,
-	ORIGIN:         wasmFnTypeArgs1,
-	CALLER:         wasmFnTypeArgs1,
-	CALLVALUE:      wasmFnTypeArgs1,
-	CALLDATALOAD:   wasmFnTypeArgs2,
-	CALLDATASIZE:   wasmFnTypeArgs1,
-	CALLDATACOPY:   wasmFnTypeArgs3,
-	CODESIZE:       wasmFnTypeArgs1,
-	CODECOPY:       wasmFnTypeArgs3,
-	GASPRICE:       wasmFnTypeArgs1,
-	EXTCODESIZE:    wasmFnTypeArgs2,
-	EXTCODECOPY:    wasmFnTypeArgs4,
-	EXTCODEHASH:    wasmFnTypeArgs2,
-	RETURNDATASIZE: wasmFnTypeArgs1,
-	RETURNDATACOPY: wasmFnTypeArgs3,
-	BLOCKHASH:      wasmFnTypeArgs2,
-	COINBASE:       wasmFnTypeArgs1,
-	TIMESTAMP:      wasmFnTypeArgs1,
-	NUMBER:         wasmFnTypeArgs1,
-	DIFFICULTY:     wasmFnTypeArgs1,
-	GASLIMIT:       wasmFnTypeArgs1,
-	CHAINID:        wasmFnTypeArgs1,
-	SELFBALANCE:    wasmFnTypeArgs1,
-	BASEFEE:        wasmFnTypeArgs1,
-	SLOAD:          wasmFnTypeArgs2,
-	SSTORE:         wasmFnTypeArgs2,
-	PC:             wasmFnTypeArgs0,
-	MSIZE:          wasmFnTypeArgs0,
-	GAS:            wasmFnTypeArgs0,
-	LOG0:           wasmFnTypeArgs2,
-	LOG1:           wasmFnTypeArgs3,
-	LOG2:           wasmFnTypeArgs4,
-	LOG3:           wasmFnTypeArgs5,
-	LOG4:           wasmFnTypeArgs6,
-	CREATE:         wasmFnTypeArgs4,
-	CALL:           wasmFnTypeArgs8,
-	CALLCODE:       wasmFnTypeArgs8,
-	RETURN:         wasmFnTypeArgs2,
-	DELEGATECALL:   wasmFnTypeArgs7,
-	CREATE2:        wasmFnTypeArgs5,
-	STATICCALL:     wasmFnTypeArgs7,
-	REVERT:         wasmFnTypeArgs2,
-	SELFDESTRUCT:   wasmFnTypeArgs1,
+var wasmFunctionTypes = map[OpCode]int{
+	STOP:           0,
+	SHA3:           3,
+	ADDRESS:        1,
+	BALANCE:        2,
+	ORIGIN:         1,
+	CALLER:         1,
+	CALLVALUE:      1,
+	CALLDATALOAD:   2,
+	CALLDATASIZE:   1,
+	CALLDATACOPY:   3,
+	CODESIZE:       1,
+	CODECOPY:       3,
+	GASPRICE:       1,
+	EXTCODESIZE:    2,
+	EXTCODECOPY:    4,
+	EXTCODEHASH:    2,
+	RETURNDATASIZE: 1,
+	RETURNDATACOPY: 3,
+	BLOCKHASH:      2,
+	COINBASE:       1,
+	TIMESTAMP:      1,
+	NUMBER:         1,
+	DIFFICULTY:     1,
+	GASLIMIT:       1,
+	CHAINID:        1,
+	SELFBALANCE:    1,
+	BASEFEE:        1,
+	SLOAD:          2,
+	SSTORE:         2,
+	PC:             0,
+	MSIZE:          0,
+	GAS:            0,
+	LOG0:           2,
+	LOG1:           3,
+	LOG2:           4,
+	LOG3:           5,
+	LOG4:           6,
+	CREATE:         4,
+	CALL:           8,
+	CALLCODE:       8,
+	RETURN:         2,
+	DELEGATECALL:   7,
+	CREATE2:        5,
+	STATICCALL:     7,
+	REVERT:         2,
+	SELFDESTRUCT:   1,
 }
 
 func (in *WASMInterpreter) processOpcode(
@@ -593,11 +567,10 @@ func (in *WASMInterpreter) registerNativeFunction(
 	finalizer opCodeResultFn,
 	inputPreprocessors ...opCodeResultFn,
 ) {
-	var paramsCount = 0
-	if valueTypes, ok := wasmFunctionTypes[opcode]; !ok {
+	var paramsCount int
+	var ok bool
+	if paramsCount, ok = wasmFunctionTypes[opcode]; !ok {
 		log.Panicf("failed to register fn '%s', function type not found", fnName)
-	} else {
-		paramsCount = len(valueTypes)
 	}
 	fnNameInner := fnName
 	in.wasmEngine.RegisterHostFnI32(fnName, paramsCount, func(params []int32) int32 {
@@ -639,12 +612,12 @@ func (in *WASMInterpreter) registerLogsCallback() {
 		l := &traceLog{}
 		_ = json.Unmarshal([]byte(jsonTrace), l)
 
-		var memoryChange *api.MemoryChangeInfo
+		var memoryChange *MemoryChangeInfo
 		if len(l.MemoryChanges) > 0 {
 			if len(l.MemoryChanges) > 1 {
 				panic("multiple memory changes are not supported yet")
 			}
-			memoryChange = &api.MemoryChangeInfo{
+			memoryChange = &MemoryChangeInfo{
 				Offset: l.MemoryChanges[0].Offset,
 				Value:  l.MemoryChanges[0].Data,
 			}
@@ -739,7 +712,7 @@ func (in *WASMInterpreter) registerGasCheckFunction() {
 	paramsCount := 1
 	in.wasmEngine.RegisterHostFnI64(GasImportedFunction, paramsCount, func(params []int64) int32 {
 		if len(params) != paramsCount {
-			panic(sys.NewExitError(GasImportedFunction, errCodeGasParamsMismatch))
+			panic(ErrOutOfGas)
 		}
 		scope := in.Scope()
 		input := make([]uint64, len(params))
@@ -761,7 +734,7 @@ func (in *WASMInterpreter) registerGasCheckFunction() {
 			}
 		}
 		if !scope.Contract.UseGas(gasSpend) {
-			panic(sys.NewExitError(GasImportedFunction, errCodeOutOfGas))
+			panic(ErrOutOfGas)
 		}
 		return int32(zkwasm_wasmi.ComputeTraceErrorCodeOk)
 	})

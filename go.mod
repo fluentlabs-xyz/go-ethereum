@@ -55,7 +55,6 @@ require (
 	github.com/status-im/keycard-go v0.2.0
 	github.com/stretchr/testify v1.8.2
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
-	github.com/tetratelabs/wazero v1.0.0-pre.7
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/wasm0/zkwasm-gas-injector v0.0.0-20230417162546-ab3ab673b1f7
 	github.com/wasm0/zkwasm-wasmi v0.0.0-20230417170754-af886b30371f
@@ -135,7 +134,4 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/tetratelabs/wazero v1.0.0-pre.7 => github.com/wasm0/zkwasm-wazero v0.0.0-20230317183354-15bd6ed9215e
-
-//replace github.com/tetratelabs/wazero v1.0.0-pre.7 => ../zkwasm-wazero
 //replace github.com/wasm0/zkwasm-wasmi => ../zkwasm-wasmi
