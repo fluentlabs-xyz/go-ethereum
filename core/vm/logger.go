@@ -532,5 +532,5 @@ type WASMLogger interface {
 	CaptureGlobalMemoryState(globalMemory map[uint32][]byte)
 	CaptureWasmState(pc uint64, op OpCodeInfo, memory *MemoryChangeInfo, scope *ScopeContext, depth int, drop, keep uint32)
 	CaptureGasState(gasCost uint64, scope *ScopeContext, depth int, err error)
-	CaptureWasmFunctionCall(fnIndex, maxStackHeight, numLocals uint32)
+	CaptureWasmFunctionCall(fnIndex, maxStackHeight, numLocals uint32, fnName string)
 }

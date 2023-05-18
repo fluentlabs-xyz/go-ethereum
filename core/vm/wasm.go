@@ -4,22 +4,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/holiman/uint256"
+	"github.com/scroll-tech/go-ethereum/common/hexutil"
+	"github.com/scroll-tech/go-ethereum/common/math"
 	zkwasm_wasmi "github.com/wasm0/zkwasm-wasmi"
 	"log"
+	"strings"
 )
-
-type WASMState struct {
-	scope *ScopeContext
-}
 
 type WASMInterpreter struct {
 	// input params
 	evm    *EVM
 	config Config
 	// queue with all WASM contexts
-	stateQueue []WASMState
+	stateQueue []*ScopeContext
 	// stateless params
 	readOnly   bool
 	returnData []byte
@@ -52,7 +50,7 @@ func (in *WASMInterpreter) Scope() *ScopeContext {
 	if in.evm.depth-1 >= len(in.stateQueue) {
 		panic("context queue is empty")
 	}
-	scope := in.stateQueue[in.evm.depth-1].scope
+	scope := in.stateQueue[in.evm.depth-1]
 	scope.Memory = newMemoryFromSlice([]byte{}, in)
 	return scope
 }
@@ -130,8 +128,12 @@ func (in *WASMInterpreter) Run(
 
 	in.readOnly = readOnly
 
+	var wasmLogger WASMLogger
+	var ok bool
 	if in.config.Debug && in.config.Tracer == nil {
 		panic("tracer must be configured in debug mode")
+	} else if wasmLogger, ok = in.config.Tracer.(WASMLogger); !ok {
+		panic("tracer must implement [WASMLogger] in this mode")
 	}
 
 	//ctx := context.TODO()
@@ -185,14 +187,13 @@ func (in *WASMInterpreter) Run(
 
 	in.wasmEngine.SetWasmBinary(contract.Code)
 
-	stateQueue := WASMState{scope}
-	defer func() {
-		in.stateQueue = in.stateQueue[0 : in.evm.depth-1]
-	}()
 	if len(in.stateQueue) != in.evm.depth-1 {
 		panic("state queue len and evm depth mismatch, this is not possible")
 	}
-	in.stateQueue = append(in.stateQueue, stateQueue)
+	defer func() {
+		in.stateQueue = in.stateQueue[0 : in.evm.depth-1]
+	}()
+	in.stateQueue = append(in.stateQueue, scope)
 
 	// capture global memory state
 	//if in.config.Debug {
@@ -250,21 +251,20 @@ func (in *WASMInterpreter) Run(
 		FnIndex        uint32 `json:"fn_index"`
 		MaxStackHeight uint32 `json:"max_stack_height"`
 		NumLocals      uint32 `json:"num_locals"`
+		FnName         string `json:"fn_name"`
 	}
 	type traceStruct struct {
 		GlobalMemory []traceMemory  `json:"global_memory"`
 		Logs         []traceLog     `json:"logs"`
 		FnMetas      []functionMeta `json:"fn_metas"`
 	}
-	trace := &traceStruct{}
-	fmt.Printf("trace from wasmi: %s\n", traceJsonBytes)
-	_ = json.Unmarshal(traceJsonBytes, trace)
 
 	if in.config.Debug {
-		var wasmLogger WASMLogger
-		var ok bool
-		if wasmLogger, ok = in.config.Tracer.(WASMLogger); !ok {
-			panic("tracer must implement [WASMLogger] in this mode")
+		trace := &traceStruct{}
+		fmt.Printf("trace from wasmi: %s\n", traceJsonBytes)
+		err = json.Unmarshal(traceJsonBytes, trace)
+		if err != nil {
+			panic(err)
 		}
 		if trace.GlobalMemory != nil {
 			globalMemory := make(map[uint32][]byte)
@@ -274,7 +274,7 @@ func (in *WASMInterpreter) Run(
 			wasmLogger.CaptureGlobalMemoryState(globalMemory)
 		}
 		for _, fm := range trace.FnMetas {
-			wasmLogger.CaptureWasmFunctionCall(fm.FnIndex, fm.MaxStackHeight, fm.NumLocals)
+			wasmLogger.CaptureWasmFunctionCall(fm.FnIndex, fm.MaxStackHeight, fm.NumLocals, fm.FnName)
 		}
 	}
 
@@ -323,9 +323,13 @@ func tryUnwrapError(err error) error {
 }
 
 func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) error {
-	//gasCopy := scope.Contract.Gas
+	gasCopy := scope.Contract.Gas
 	memory := scope.Memory
 	op := in.config.JumpTable[opcode]
+	if op == nil {
+		in.config.JumpTable = newLondonInstructionSet()
+		op = in.config.JumpTable[opcode]
+	}
 	cost := op.constantGas
 	if !scope.Contract.UseGas(cost) {
 		return ErrOutOfGas
@@ -351,9 +355,9 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) error {
 	var pc uint64
 	ei := NewEVMInterpreter(in.evm, in.config)
 	ei.readOnly = in.readOnly
-	//if in.config.Debug {
-	//	in.config.Tracer.CaptureState(math.MaxUint64, opcode, gasCopy, cost, scope, in.returnData, in.evm.depth, nil)
-	//}
+	if in.config.Debug {
+		in.config.Tracer.CaptureState(math.MaxUint64, opcode, gasCopy, cost, scope, in.returnData, in.evm.depth, nil)
+	}
 	ret, err := op.execute(&pc, ei, scope)
 	// always copy return data, because revert opcode return data with error
 	in.returnData = ret
@@ -453,53 +457,6 @@ func (in *WASMInterpreter) processOpcode(
 
 type opCodeResultFn = func(input []uint64, scope *ScopeContext) error
 
-//func (in *WASMInterpreter) defaultOpCodeHandler(
-//	host wazero.HostModuleBuilder,
-//	fnName string,
-//	opcode OpCode,
-//	finalizer opCodeResultFn,
-//	inputPreprocessors ...opCodeResultFn,
-//) wazero.HostModuleBuilder {
-//	fnType := wasmFunctionTypes[opcode]
-//	if fnType == nil {
-//		log.Panicf("there is no function type for opcode (%s)", opcode.String())
-//	}
-//	return host.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, input []uint64) {
-//		// fill stack with input parameters
-//		stack := newstack()
-//		for i := range input {
-//			stack.push(uint256.NewInt(input[len(input)-i-1]))
-//		}
-//		scope := in.ScopeWithStack(stack)
-//		memory := in.Memory()
-//		// handle function end to trigger finalizers (RETURN opcode panics errStopToken)
-//		defer func() {
-//			if finalizer != nil {
-//				if err2 := finalizer(input, scope, memory); err2 != nil {
-//					_ = mod.CloseWithExitCode(ctx, 1)
-//					panic(err2)
-//				}
-//			}
-//			returnStack(stack)
-//		}()
-//		// call input processors to convert memory offset to stack items for some elements
-//		if inputPreprocessors != nil {
-//			for _, inputPreprocessor := range inputPreprocessors {
-//				if err := inputPreprocessor(input, scope, memory); err != nil {
-//					_ = mod.CloseWithExitCode(ctx, 1)
-//					panic(err)
-//				}
-//			}
-//		}
-//		// execute EVM opcode by emulating EVM environment with gas calculation
-//		err := in.execEvmOp(opcode, scope)
-//		if err != nil {
-//			_ = mod.CloseWithExitCode(ctx, 1)
-//			panic(err)
-//		}
-//	}), fnType, []api.ValueType{}).Export(fnName)
-//}
-
 const (
 	AddressDestLen = 20
 	SizeDestLen    = 4
@@ -596,7 +553,7 @@ func (in *WASMInterpreter) registerLogsCallback() {
 		type traceMemory struct {
 			Offset uint32 `json:"offset"`
 			Len    uint32 `json:"len"`
-			Data   []byte `json:"data"`
+			Data   string `json:"data"`
 		}
 		type traceLog struct {
 			Pc            uint32        `json:"pc"`
@@ -617,9 +574,13 @@ func (in *WASMInterpreter) registerLogsCallback() {
 			if len(l.MemoryChanges) > 1 {
 				panic("multiple memory changes are not supported yet")
 			}
+			data := l.MemoryChanges[0].Data
+			if !strings.HasPrefix(data, "0x") {
+				data = "0x" + data
+			}
 			memoryChange = &MemoryChangeInfo{
 				Offset: l.MemoryChanges[0].Offset,
-				Value:  l.MemoryChanges[0].Data,
+				Value:  hexutil.MustDecode(data),
 			}
 		}
 		op := &wasmOpcodeInfo{

@@ -3,13 +3,12 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/holiman/uint256"
 	"github.com/sbinet/wasm"
-	"github.com/tetratelabs/wazero/api"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/common/hexutil"
+	"github.com/scroll-tech/go-ethereum/common/math"
+	"github.com/scroll-tech/go-ethereum/core/vm"
 	"math/big"
 	"strings"
 	"sync/atomic"
@@ -52,7 +51,7 @@ type WasmGlobal struct {
 type WasmLog struct {
 	Pc            uint64                      `json:"pc"`
 	OpFamily      OpCodeFamily                `json:"opcodeFamily,omitempty"`
-	Op            api.OpCodeInfo              `json:"op"`
+	Op            vm.OpCodeInfo               `json:"op"`
 	Params        []uint64                    `json:"params,omitempty"`
 	Gas           uint64                      `json:"gas"`
 	GasCost       uint64                      `json:"gasCost"`
@@ -73,6 +72,7 @@ type WasmFnCallLog struct {
 	FnIndex        uint32 `json:"fnIndex"`
 	MaxStackHeight uint32 `json:"maxStackHeight"`
 	NumLocals      uint32 `json:"numLocals"`
+	FnName         string `json:"fnName"`
 }
 
 // overrides for gencodec
@@ -163,7 +163,7 @@ func (l *WebAssemblyLogger) CaptureStart(env *vm.EVM, from common.Address, to co
 	l.env = env
 }
 
-func (l *WebAssemblyLogger) CaptureGlobalVariable(index uint64, op api.OpCodeInfo, value uint64) {
+func (l *WebAssemblyLogger) CaptureGlobalVariable(index uint64, op vm.OpCodeInfo, value uint64) {
 	global := WasmGlobal{
 		Pc:     op.Pc(),
 		Index:  index,
@@ -183,32 +183,10 @@ func (l *WebAssemblyLogger) CaptureGlobalMemoryState(globalMemory map[uint32][]b
 	}
 }
 
-type wasmOpCode struct {
-	opcode byte
-	pc     uint64
-	params []uint64
-}
-
-func (g *wasmOpCode) String() string {
-	return ""
-}
-
-func (g *wasmOpCode) Code() byte {
-	return g.opcode
-}
-
-func (g *wasmOpCode) GetParams() []uint64 {
-	return g.params
-}
-
-func (g *wasmOpCode) Pc() uint64 {
-	return g.pc
-}
-
 func (l *WebAssemblyLogger) CaptureWasmState(
 	pc uint64,
-	op api.OpCodeInfo,
-	memory *api.MemoryChangeInfo,
+	op vm.OpCodeInfo,
+	memory *vm.MemoryChangeInfo,
 	scope *vm.ScopeContext,
 	depth int,
 	drop,
@@ -303,11 +281,12 @@ func (l *WebAssemblyLogger) CaptureGasState(gasCost uint64, scope *vm.ScopeConte
 	l.logs[len(l.logs)-1] = log
 }
 
-func (l *WebAssemblyLogger) CaptureWasmFunctionCall(fnIndex, maxStackHeight, numLocals uint32) {
+func (l *WebAssemblyLogger) CaptureWasmFunctionCall(fnIndex, maxStackHeight, numLocals uint32, fnName string) {
 	l.functionCalls = append(l.functionCalls, WasmFnCallLog{
 		FnIndex:        fnIndex,
 		MaxStackHeight: maxStackHeight,
 		NumLocals:      numLocals,
+		FnName:         fnName,
 	})
 }
 
@@ -442,6 +421,9 @@ func (l *WebAssemblyLogger) CaptureState(pc uint64, op vm.OpCode, gas, cost uint
 		0,
 	}
 	l.logs = append(l.logs, log)
+}
+
+func (l *WebAssemblyLogger) CaptureStateAfter(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 }
 
 // CaptureFault implements the EVMLogger interface to trace an execution fault

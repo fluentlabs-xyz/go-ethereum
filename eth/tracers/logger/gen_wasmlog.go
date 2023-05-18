@@ -5,21 +5,21 @@ package logger
 import (
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/holiman/uint256"
-	"github.com/tetratelabs/wazero/api"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/common/hexutil"
+	"github.com/scroll-tech/go-ethereum/common/math"
+	"github.com/scroll-tech/go-ethereum/core/vm"
 )
 
 var _ = (*wasmLogMarshaling)(nil)
 
 // MarshalJSON marshals as JSON.
-func (w *WasmLog) MarshalJSON() ([]byte, error) {
+func (w WasmLog) MarshalJSON() ([]byte, error) {
 	type WasmLog struct {
 		Pc            uint64                      `json:"pc"`
 		OpFamily      OpCodeFamily                `json:"opcodeFamily,omitempty"`
-		Op            api.OpCodeInfo              `json:"op"`
+		Op            vm.OpCodeInfo               `json:"op"`
 		Params        []uint64                    `json:"params,omitempty"`
 		Gas           math.HexOrDecimal64         `json:"gas"`
 		GasCost       math.HexOrDecimal64         `json:"gasCost"`
@@ -32,6 +32,8 @@ func (w *WasmLog) MarshalJSON() ([]byte, error) {
 		Depth         int                         `json:"depth"`
 		RefundCounter uint64                      `json:"refund"`
 		Err           error                       `json:"-"`
+		Keep          uint32                      `json:"keep"`
+		Drop          uint32                      `json:"drop"`
 		OpName        string                      `json:"opName"`
 		ErrorString   string                      `json:"error,omitempty"`
 	}
@@ -51,6 +53,8 @@ func (w *WasmLog) MarshalJSON() ([]byte, error) {
 	enc.Depth = w.Depth
 	enc.RefundCounter = w.RefundCounter
 	enc.Err = w.Err
+	enc.Keep = w.Keep
+	enc.Drop = w.Drop
 	enc.OpName = w.OpName()
 	enc.ErrorString = w.ErrorString()
 	return json.Marshal(&enc)
@@ -61,7 +65,7 @@ func (w *WasmLog) UnmarshalJSON(input []byte) error {
 	type WasmLog struct {
 		Pc            *uint64                     `json:"pc"`
 		OpFamily      *OpCodeFamily               `json:"opcodeFamily,omitempty"`
-		Op            api.OpCodeInfo              `json:"op"`
+		Op            vm.OpCodeInfo               `json:"op"`
 		Params        []uint64                    `json:"params,omitempty"`
 		Gas           *math.HexOrDecimal64        `json:"gas"`
 		GasCost       *math.HexOrDecimal64        `json:"gasCost"`
@@ -74,6 +78,8 @@ func (w *WasmLog) UnmarshalJSON(input []byte) error {
 		Depth         *int                        `json:"depth"`
 		RefundCounter *uint64                     `json:"refund"`
 		Err           error                       `json:"-"`
+		Keep          *uint32                     `json:"keep"`
+		Drop          *uint32                     `json:"drop"`
 	}
 	var dec WasmLog
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -123,6 +129,12 @@ func (w *WasmLog) UnmarshalJSON(input []byte) error {
 	}
 	if dec.Err != nil {
 		w.Err = dec.Err
+	}
+	if dec.Keep != nil {
+		w.Keep = *dec.Keep
+	}
+	if dec.Drop != nil {
+		w.Drop = *dec.Drop
 	}
 	return nil
 }
