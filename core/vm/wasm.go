@@ -234,7 +234,7 @@ func (in *WASMInterpreter) Run(
 	type traceMemory struct {
 		Offset uint32 `json:"offset"`
 		Len    uint32 `json:"len"`
-		Data   []byte `json:"data"`
+		Data   string `json:"data"`
 	}
 	type traceLog struct {
 		Pc            uint32        `json:"pc"`
@@ -264,12 +264,17 @@ func (in *WASMInterpreter) Run(
 		fmt.Printf("trace from wasmi: %s\n", traceJsonBytes)
 		err = json.Unmarshal(traceJsonBytes, trace)
 		if err != nil {
+			fmt.Printf("received bad json from wasmi")
 			panic(err)
 		}
 		if trace.GlobalMemory != nil {
 			globalMemory := make(map[uint32][]byte)
 			for _, gm := range trace.GlobalMemory {
-				globalMemory[gm.Offset] = gm.Data
+				data := gm.Data
+				if !strings.HasPrefix(data, "0x") {
+					data = "0x" + data
+				}
+				globalMemory[gm.Offset] = hexutil.MustDecode(data)
 			}
 			wasmLogger.CaptureGlobalMemoryState(globalMemory)
 		}
