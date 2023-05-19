@@ -253,10 +253,15 @@ func (in *WASMInterpreter) Run(
 		NumLocals      uint32 `json:"num_locals"`
 		FnName         string `json:"fn_name"`
 	}
+	type globalVariable struct {
+		Index uint64 `json:"index"`
+		Value uint64 `json:"value"`
+	}
 	type traceStruct struct {
-		GlobalMemory []traceMemory  `json:"global_memory"`
-		Logs         []traceLog     `json:"logs"`
-		FnMetas      []functionMeta `json:"fn_metas"`
+		GlobalMemory    []traceMemory    `json:"global_memory"`
+		Logs            []traceLog       `json:"logs"`
+		GlobalVariables []globalVariable `json:"global_variables"`
+		FnMetas         []functionMeta   `json:"fn_metas"`
 	}
 
 	if in.config.Debug {
@@ -277,6 +282,9 @@ func (in *WASMInterpreter) Run(
 				globalMemory[gm.Offset] = hexutil.MustDecode(data)
 			}
 			wasmLogger.CaptureGlobalMemoryState(globalMemory)
+		}
+		for _, fm := range trace.GlobalVariables {
+			wasmLogger.CaptureGlobalVariable(fm.Index, nil, fm.Value)
 		}
 		for _, fm := range trace.FnMetas {
 			wasmLogger.CaptureWasmFunctionCall(fm.FnIndex, fm.MaxStackHeight, fm.NumLocals, fm.FnName)

@@ -165,11 +165,13 @@ func (l *WebAssemblyLogger) CaptureStart(env *vm.EVM, from common.Address, to co
 
 func (l *WebAssemblyLogger) CaptureGlobalVariable(index uint64, op vm.OpCodeInfo, value uint64) {
 	global := WasmGlobal{
-		Pc:     op.Pc(),
-		Index:  index,
-		Op:     vm.WasmOpCodeToName[wasm.Opcode(op.Code())],
-		Params: op.GetParams(),
-		Value:  value,
+		Index: index,
+		Value: value,
+	}
+	if op != nil {
+		global.Pc = op.Pc()
+		global.Op = vm.WasmOpCodeToName[wasm.Opcode(op.Code())]
+		global.Params = op.GetParams()
 	}
 	l.globals = append(l.globals, global)
 }
