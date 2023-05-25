@@ -144,6 +144,8 @@ func (in *WASMInterpreter) Run(
 		returnStack(stack)
 	}()
 
+	contract.Input = input
+
 	//var runtimeConfig wazero.RuntimeConfig
 	//if in.config.Debug {
 	//	runtimeConfig = wazero.NewRuntimeConfigWithTracer(in)
@@ -266,7 +268,6 @@ func (in *WASMInterpreter) Run(
 
 	if in.config.Debug {
 		trace := &traceStruct{}
-		fmt.Printf("trace from wasmi: %s\n", traceJsonBytes)
 		err = json.Unmarshal(traceJsonBytes, trace)
 		if err != nil {
 			fmt.Printf("received bad json from wasmi")

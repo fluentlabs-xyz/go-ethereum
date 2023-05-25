@@ -610,6 +610,10 @@ github.com/wasm0/zkwasm-wasmi v0.0.0-20230518124118-1ec41428152c h1:6WCZ5KjaD5cM
 github.com/wasm0/zkwasm-wasmi v0.0.0-20230518124118-1ec41428152c/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
 github.com/wasm0/zkwasm-wasmi v0.0.0-20230518200754-81e4c6bf23ba h1:U+C7RVTWuBsYmckFgWVkc0aRdICOftyRNbk+jHVIKNE=
 github.com/wasm0/zkwasm-wasmi v0.0.0-20230518200754-81e4c6bf23ba/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
+github.com/wasm0/zkwasm-wasmi v0.0.0-20230519211126-c8af40ea9038 h1:ED6SjTSbJl+8tXfblH/DZP/hj8s/k08EmWwNPSo0UNw=
+github.com/wasm0/zkwasm-wasmi v0.0.0-20230519211126-c8af40ea9038/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
+github.com/wasm0/zkwasm-wasmi v0.0.0-20230524183146-f963391c3617 h1:esR2UTfpnw4u0yVtg5pKpyO/thigJP5s3QNzr58ISB4=
+github.com/wasm0/zkwasm-wasmi v0.0.0-20230524183146-f963391c3617/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
 github.com/wasmerio/wasmer-go v1.0.4 h1:MnqHoOGfiQ8MMq2RF6wyCeebKOe84G88h5yv+vmxJgs=
 github.com/wasmerio/wasmer-go v1.0.4/go.mod h1:0gzVdSfg6pysA6QVp6iVRPTagC6Wq9pOE8J86WKb2Fk=
 github.com/willf/bitset v1.1.3/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=
