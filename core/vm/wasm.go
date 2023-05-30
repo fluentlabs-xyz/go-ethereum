@@ -414,9 +414,9 @@ var wasmFunctionTypes = map[OpCode]int{
 	BASEFEE:        1,
 	SLOAD:          2,
 	SSTORE:         2,
-	PC:             1,
-	MSIZE:          1,
-	GAS:            1,
+	PC:             0,
+	MSIZE:          0,
+	GAS:            0,
 	LOG0:           2,
 	LOG1:           3,
 	LOG2:           4,
@@ -659,9 +659,9 @@ func (in *WASMInterpreter) registerNativeFunctions() {
 		replaceMemOffsetWithValueOnStack(0, Uint256FieldType),
 		replaceMemOffsetWithValueOnStack(1, Uint256FieldType))
 	// system opcodes
-	in.registerNativeFunction("_evm_pc", PC, copyLastStackItemToMemory(Uint32DestLen))
-	in.registerNativeFunction("_evm_msize", MSIZE, copyLastStackItemToMemory(Uint32DestLen))
-	in.registerNativeFunction("_evm_gas", GAS, copyLastStackItemToMemory(Uint64DestLen))
+	in.registerNativeFunction("_evm_pc", PC, nil)
+	in.registerNativeFunction("_evm_msize", MSIZE, nil)
+	in.registerNativeFunction("_evm_gas", GAS, nil)
 	// log emit opcodes
 	in.registerNativeFunction("_evm_log0", LOG0, nil)
 	in.registerNativeFunction("_evm_log1", LOG1, nil,
