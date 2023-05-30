@@ -614,6 +614,8 @@ github.com/wasm0/zkwasm-wasmi v0.0.0-20230519211126-c8af40ea9038 h1:ED6SjTSbJl+8
 github.com/wasm0/zkwasm-wasmi v0.0.0-20230519211126-c8af40ea9038/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
 github.com/wasm0/zkwasm-wasmi v0.0.0-20230524183146-f963391c3617 h1:esR2UTfpnw4u0yVtg5pKpyO/thigJP5s3QNzr58ISB4=
 github.com/wasm0/zkwasm-wasmi v0.0.0-20230524183146-f963391c3617/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
+github.com/wasm0/zkwasm-wasmi v0.0.0-20230525175448-c8fed29772ad h1:EwdgXsR/8beEP1HxfO1sAy2RPYlsk8N9SBsI2mo3+yo=
+github.com/wasm0/zkwasm-wasmi v0.0.0-20230525175448-c8fed29772ad/go.mod h1:KvTRmrMKpWvJzQNNL5YgsjDJVpzDkLWy6o74VdOYI/8=
 github.com/wasmerio/wasmer-go v1.0.4 h1:MnqHoOGfiQ8MMq2RF6wyCeebKOe84G88h5yv+vmxJgs=
 github.com/wasmerio/wasmer-go v1.0.4/go.mod h1:0gzVdSfg6pysA6QVp6iVRPTagC6Wq9pOE8J86WKb2Fk=
 github.com/willf/bitset v1.1.3/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=

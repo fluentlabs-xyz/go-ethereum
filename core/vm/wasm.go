@@ -229,6 +229,12 @@ func (in *WASMInterpreter) Run(
 	//	}
 	//}
 
+	defer func() {
+		if err2 := recover(); err2 != nil {
+			err = err2.(error)
+		}
+	}()
+
 	traceJsonBytes, err := in.wasmEngine.ComputeTrace()
 	if err != nil {
 		return nil, err
@@ -408,9 +414,9 @@ var wasmFunctionTypes = map[OpCode]int{
 	BASEFEE:        1,
 	SLOAD:          2,
 	SSTORE:         2,
-	PC:             0,
-	MSIZE:          0,
-	GAS:            0,
+	PC:             1,
+	MSIZE:          1,
+	GAS:            1,
 	LOG0:           2,
 	LOG1:           3,
 	LOG2:           4,
@@ -658,10 +664,20 @@ func (in *WASMInterpreter) registerNativeFunctions() {
 	in.registerNativeFunction("_evm_gas", GAS, copyLastStackItemToMemory(Uint64DestLen))
 	// log emit opcodes
 	in.registerNativeFunction("_evm_log0", LOG0, nil)
-	in.registerNativeFunction("_evm_log1", LOG1, nil)
-	in.registerNativeFunction("_evm_log2", LOG2, nil)
-	in.registerNativeFunction("_evm_log3", LOG3, nil)
-	in.registerNativeFunction("_evm_log4", LOG4, nil)
+	in.registerNativeFunction("_evm_log1", LOG1, nil,
+		replaceMemOffsetWithValueOnStack(2, Uint256FieldType))
+	in.registerNativeFunction("_evm_log2", LOG2, nil,
+		replaceMemOffsetWithValueOnStack(2, Uint256FieldType),
+		replaceMemOffsetWithValueOnStack(3, Uint256FieldType))
+	in.registerNativeFunction("_evm_log3", LOG3, nil,
+		replaceMemOffsetWithValueOnStack(2, Uint256FieldType),
+		replaceMemOffsetWithValueOnStack(3, Uint256FieldType),
+		replaceMemOffsetWithValueOnStack(4, Uint256FieldType))
+	in.registerNativeFunction("_evm_log4", LOG4, nil,
+		replaceMemOffsetWithValueOnStack(2, Uint256FieldType),
+		replaceMemOffsetWithValueOnStack(3, Uint256FieldType),
+		replaceMemOffsetWithValueOnStack(4, Uint256FieldType),
+		replaceMemOffsetWithValueOnStack(5, Uint256FieldType))
 	// call & create opcodes
 	in.registerNativeFunction("_evm_create", CREATE, copyLastStackItemToMemory(AddressDestLen),
 		replaceMemOffsetWithValueOnStack(0, Uint256FieldType))
