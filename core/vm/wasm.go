@@ -659,9 +659,9 @@ func (in *WASMInterpreter) registerNativeFunctions() {
 		replaceMemOffsetWithValueOnStack(0, Uint256FieldType),
 		replaceMemOffsetWithValueOnStack(1, Uint256FieldType))
 	// system opcodes
-	in.registerNativeFunction("_evm_pc", PC, nil)
-	in.registerNativeFunction("_evm_msize", MSIZE, nil)
-	in.registerNativeFunction("_evm_gas", GAS, nil)
+	in.registerNativeFunction("_evm_pc", PC, copyLastStackItemToMemory(Uint64DestLen))
+	in.registerNativeFunction("_evm_msize", MSIZE, copyLastStackItemToMemory(Uint64DestLen))
+	in.registerNativeFunction("_evm_gas", GAS, copyLastStackItemToMemory(Uint64DestLen))
 	// log emit opcodes
 	in.registerNativeFunction("_evm_log0", LOG0, nil)
 	in.registerNativeFunction("_evm_log1", LOG1, nil,
