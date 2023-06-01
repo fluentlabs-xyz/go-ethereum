@@ -229,16 +229,28 @@ func (in *WASMInterpreter) Run(
 	//	}
 	//}
 
-	defer func() {
-		if err2 := recover(); err2 != nil {
-			err = err2.(error)
+	res, err := func() (res int32, err error) {
+		defer func() {
+			if err2 := recover(); err2 != nil {
+				err = err2.(error)
+			}
+		}()
+		res, err = in.wasmEngine.ComputeResult()
+		if err != nil {
+			return res, err
 		}
+		return res, nil
 	}()
 
-	traceJsonBytes, err := in.wasmEngine.ComputeTrace()
-	if err != nil {
-		return nil, err
+	if zkwasm_wasmi.ComputeTraceErrorCode(res) == zkwasm_wasmi.ComputeTraceErrorCodeOutOfGas {
+		err = ErrOutOfGas
+	} else if zkwasm_wasmi.ComputeTraceErrorCode(res) == zkwasm_wasmi.ComputeTraceErrorCodeExecutionReverted ||
+		zkwasm_wasmi.ComputeTraceErrorCode(res) == zkwasm_wasmi.ComputeTraceErrorCodeUnknown {
+		err = ErrExecutionReverted
+	} else if zkwasm_wasmi.ComputeTraceErrorCode(res) == zkwasm_wasmi.ComputeTraceErrorCodeStopToken {
+		err = errStopToken
 	}
+
 	type traceMemory struct {
 		Offset uint32 `json:"offset"`
 		Len    uint32 `json:"len"`
@@ -273,6 +285,11 @@ func (in *WASMInterpreter) Run(
 	}
 
 	if in.config.Debug {
+		traceJsonBytes, err := in.wasmEngine.DumpTrace()
+		if err != nil {
+			fmt.Printf("can't calculate trace")
+			panic(err)
+		}
 		trace := &traceStruct{}
 		err = json.Unmarshal(traceJsonBytes, trace)
 		if err != nil {
@@ -311,7 +328,11 @@ func (in *WASMInterpreter) Run(
 	//	in.returnData = injectResult
 	//}
 
-	return in.returnData, nil
+	if err == errStopToken {
+		err = nil
+	}
+
+	return in.returnData, err
 }
 
 type wasmOpcodeInfo struct {
@@ -438,7 +459,7 @@ func (in *WASMInterpreter) processOpcode(
 	opcode OpCode,
 	finalizer opCodeResultFn,
 	inputPreprocessors ...opCodeResultFn,
-) {
+) error {
 	// fill stack with input parameters
 	stack := newstack()
 	for i := range input {
@@ -450,7 +471,6 @@ func (in *WASMInterpreter) processOpcode(
 	defer func() {
 		if finalizer != nil {
 			if err2 := finalizer(input, scope); err2 != nil {
-				//_ = mod.CloseWithExitCode(ctx, 1)
 				panic(err2)
 			}
 		}
@@ -459,20 +479,15 @@ func (in *WASMInterpreter) processOpcode(
 	// call input processors to convert memory offset to stack items for some elements
 	for _, inputPreprocessor := range inputPreprocessors {
 		if err := inputPreprocessor(input, scope); err != nil {
-			//_ = mod.CloseWithExitCode(ctx, 1)
-			panic(err)
+			return err
 		}
 	}
 	// execute EVM opcode by emulating EVM environment with gas calculation
 	err := in.execEvmOp(opcode, scope)
-	// TODO delete?
-	if err == errStopToken {
-		err = nil // clear stop token error
-	}
 	if err != nil {
-		//_ = mod.CloseWithExitCode(ctx, 1)
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 type opCodeResultFn = func(input []uint64, scope *ScopeContext) error
@@ -558,7 +573,12 @@ func (in *WASMInterpreter) registerNativeFunction(
 		for i, paramValue := range params {
 			input[i] = uint64(paramValue)
 		}
-		in.processOpcode(input, opcode, finalizer, inputPreprocessors...)
+		err := in.processOpcode(input, opcode, finalizer, inputPreprocessors...)
+		if err == errStopToken {
+			return int32(zkwasm_wasmi.ComputeTraceErrorCodeStopToken)
+		} else if err != nil {
+			panic(err)
+		}
 		return int32(zkwasm_wasmi.ComputeTraceErrorCodeOk)
 	})
 }
