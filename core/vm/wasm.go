@@ -539,13 +539,11 @@ func replaceMemOffsetWithValueOnStack(inputOffsetIndex int, fieldType FieldType)
 		itemToReplace := stack.Back(inputOffsetIndex)
 		switch fieldType {
 		case AddressFieldType:
-			valueBytes, commitMemory := scope.Memory.GetPtr(int64(offset), AddressDestLen)
+			valueBytes := scope.Memory.GetCopy(int64(offset), AddressDestLen)
 			itemToReplace.SetBytes(valueBytes)
-			commitMemory()
 		case Uint256FieldType:
-			valueBytes, commitMemory := scope.Memory.GetPtr(int64(offset), Uint256DestLen)
+			valueBytes := scope.Memory.GetCopy(int64(offset), Uint256DestLen)
 			itemToReplace.SetBytes(valueBytes)
-			commitMemory()
 		default:
 			return fmt.Errorf("unsupported field type provided (%d)", fieldType)
 		}
@@ -674,7 +672,8 @@ func (in *WASMInterpreter) registerNativeFunctions() {
 	in.registerNativeFunction("_evm_selfbalance", SELFBALANCE, copyLastStackItemToMemory(Uint256DestLen))
 	in.registerNativeFunction("_evm_basefee", BASEFEE, copyLastStackItemToMemory(Uint256DestLen))
 	// storage
-	in.registerNativeFunction("_evm_sload", SLOAD, copyLastStackItemToMemory(Uint256DestLen))
+	in.registerNativeFunction("_evm_sload", SLOAD, copyLastStackItemToMemory(Uint256DestLen),
+		replaceMemOffsetWithValueOnStack(0, Uint256FieldType))
 	in.registerNativeFunction("_evm_sstore", SSTORE, nil,
 		replaceMemOffsetWithValueOnStack(0, Uint256FieldType),
 		replaceMemOffsetWithValueOnStack(1, Uint256FieldType))
