@@ -363,7 +363,7 @@ func tryUnwrapError(err error) error {
 	return err
 }
 
-func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) error {
+func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) (err error) {
 	gasCopy := scope.Contract.Gas
 	memory := scope.Memory
 	op := in.config.JumpTable[opcode]
@@ -372,6 +372,15 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) error {
 		op = in.config.JumpTable[opcode]
 	}
 	cost := op.constantGas
+	defer func() {
+		err2 := err
+		if err2 == errStopToken {
+			err2 = nil
+		}
+		if in.config.Debug {
+			in.config.Tracer.CaptureState(math.MaxUint64, opcode, gasCopy, cost, scope, in.returnData, in.evm.depth, err2)
+		}
+	}()
 	if !scope.Contract.UseGas(cost) {
 		return ErrOutOfGas
 	}
@@ -396,9 +405,6 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) error {
 	var pc uint64
 	ei := NewEVMInterpreter(in.evm, in.config)
 	ei.readOnly = in.readOnly
-	if in.config.Debug {
-		in.config.Tracer.CaptureState(math.MaxUint64, opcode, gasCopy, cost, scope, in.returnData, in.evm.depth, nil)
-	}
 	ret, err := op.execute(&pc, ei, scope)
 	// always copy return data, because revert opcode return data with error
 	in.returnData = ret
@@ -565,7 +571,8 @@ func (in *WASMInterpreter) registerNativeFunction(
 	fnNameInner := fnName
 	in.wasmEngine.RegisterHostFnI32(fnName, paramsCount, func(params []int32) int32 {
 		if len(params) != paramsCount {
-			log.Panicf("host fn '%s' called with params count %d while expected %d\n", fnNameInner, len(params), paramsCount)
+			log.Printf("host fn '%s' called with params count %d while expected %d\n", fnNameInner, len(params), paramsCount)
+			return int32(zkwasm_wasmi.ComputeTraceErrorCodeUnknown)
 		}
 		input := make([]uint64, len(params))
 		for i, paramValue := range params {
