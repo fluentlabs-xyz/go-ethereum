@@ -96,9 +96,19 @@ func (in *WASMInterpreter) readMemory(offset, size uint64) []byte {
 	return dataChunk
 }
 
+func (in *WASMInterpreter) rawData() []byte {
+	data, _ := in.wasmEngine.MemoryData()
+	return data
+}
+
 func (in *WASMInterpreter) resizeMemory(size uint64) {
 	// do honest resize memory here
 	panic("not implemented")
+}
+
+func (in *WASMInterpreter) memorySize() uint64 {
+	data, _ := in.wasmEngine.MemoryData()
+	return uint64(len(data))
 }
 
 func (in *WASMInterpreter) Run(
@@ -602,7 +612,7 @@ func (in *WASMInterpreter) registerLogsCallback() {
 		}
 		type traceLog struct {
 			Pc            uint32        `json:"pc"`
-			SourcePc      uint32        `json:"source-pc"`
+			SourcePc      uint32        `json:"source_pc"`
 			Opcode        uint8         `json:"opcode"`
 			Name          string        `json:"name"`
 			StackDrop     uint32        `json:"stack_drop,omitempty"`

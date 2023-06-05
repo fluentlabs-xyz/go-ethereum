@@ -23,7 +23,9 @@ import (
 type MemoryInterceptor interface {
 	writeMemory(offset, size uint64, value []byte)
 	readMemory(offset, size uint64) []byte
+	rawData() []byte
 	resizeMemory(size uint64)
+	memorySize() uint64
 }
 
 // Memory implements a simple memory model for the ethereum virtual machine.
@@ -131,10 +133,16 @@ func (m *Memory) GetPtr(offset, size int64) ([]byte, MemoryCommitHandler) {
 
 // Len returns the length of the backing slice
 func (m *Memory) Len() int {
+	if m.memoryInterceptor != nil {
+		return int(m.memoryInterceptor.memorySize())
+	}
 	return len(m.store)
 }
 
 // Data returns the backing slice
 func (m *Memory) Data() []byte {
+	if m.memoryInterceptor != nil {
+		return m.memoryInterceptor.rawData()
+	}
 	return m.store
 }
