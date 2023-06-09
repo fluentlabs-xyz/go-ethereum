@@ -412,10 +412,13 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) (err er
 			return ErrOutOfGas
 		}
 	}
-	var pc uint64
+
+	pc, _ := in.wasmEngine.GetLastPc();
+    pc_u64 := uint64(pc);
+
 	ei := NewEVMInterpreter(in.evm, in.config)
 	ei.readOnly = in.readOnly
-	ret, err := op.execute(&pc, ei, scope)
+	ret, err := op.execute(&pc_u64, ei, scope)
 	// always copy return data, because revert opcode return data with error
 	in.returnData = ret
 	return err
