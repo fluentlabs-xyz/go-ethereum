@@ -413,8 +413,8 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) (err er
 		}
 	}
 
-	pc, _ := in.wasmEngine.GetLastPc();
-    pc_u64 := uint64(pc);
+	pc, _ := in.wasmEngine.GetLastPc()
+	pc_u64 := uint64(pc)
 
 	ei := NewEVMInterpreter(in.evm, in.config)
 	ei.readOnly = in.readOnly
@@ -642,7 +642,7 @@ func (in *WASMInterpreter) registerLogsCallback() {
 			}
 		}
 		op := &wasmOpcodeInfo{
-			pc:     l.Pc,
+			pc:     l.SourcePc,
 			opcode: l.Opcode,
 			name:   l.Name,
 			params: l.Params,
