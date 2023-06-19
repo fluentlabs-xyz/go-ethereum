@@ -34,7 +34,9 @@ func NewWASMInterpreter(
 		wasmEngine: zkwasm_wasmi.NewWasmEngine(),
 	}
 	instance.registerNativeFunctions()
-	instance.registerLogsCallback()
+	if config.Debug {
+		instance.registerLogsCallback()
+	}
 	return instance
 }
 
@@ -140,10 +142,12 @@ func (in *WASMInterpreter) Run(
 
 	var wasmLogger WASMLogger
 	var ok bool
-	if in.config.Debug && in.config.Tracer == nil {
-		panic("tracer must be configured in debug mode")
-	} else if wasmLogger, ok = in.config.Tracer.(WASMLogger); !ok {
-		panic("tracer must implement [WASMLogger] in this mode")
+	if in.config.Debug {
+		if in.config.Tracer == nil {
+			panic("tracer must be configured in debug mode")
+		} else if wasmLogger, ok = in.config.Tracer.(WASMLogger); !ok {
+			panic("tracer must implement [WASMLogger] in this mode")
+		}
 	}
 
 	//ctx := context.TODO()
@@ -401,7 +405,7 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) (err er
 			if overflow {
 				return ErrGasUintOverflow
 			}
-			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
+			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 0x10000); overflow {
 				return ErrGasUintOverflow
 			}
 		}
@@ -414,11 +418,11 @@ func (in *WASMInterpreter) execEvmOp(opcode OpCode, scope *ScopeContext) (err er
 	}
 
 	pc, _ := in.wasmEngine.GetLastPc()
-	pc_u64 := uint64(pc)
+	pcU64 := uint64(pc)
 
 	ei := NewEVMInterpreter(in.evm, in.config)
 	ei.readOnly = in.readOnly
-	ret, err := op.execute(&pc_u64, ei, scope)
+	ret, err := op.execute(&pcU64, ei, scope)
 	// always copy return data, because revert opcode return data with error
 	in.returnData = ret
 	return err

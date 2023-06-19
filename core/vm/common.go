@@ -70,11 +70,11 @@ func getData(data []byte, start uint64, size uint64) []byte {
 
 // toWordSize returns the ceiled word size required for memory expansion.
 func toWordSize(size uint64) uint64 {
-	if size > math.MaxUint64-31 {
-		return math.MaxUint64/32 + 1
+	if size > math.MaxUint64-0xffff {
+		return math.MaxUint64/0x10000 + 1
 	}
 
-	return (size + 31) / 32
+	return (size + 0xffff) / 0x10000
 }
 
 func allZero(b []byte) bool {
