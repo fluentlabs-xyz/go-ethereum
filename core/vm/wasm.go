@@ -66,7 +66,7 @@ func (in *WASMInterpreter) GlobalVariable(relativePc uint64, opcode OpCodeInfo, 
 	wasmLogger.CaptureGlobalVariable(relativePc, opcode, value)
 }
 
-func (in *WASMInterpreter) BeforeState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo) {
+func (in *WASMInterpreter) BeforeState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory []MemoryChangeInfo) {
 	evmStack := newstack()
 	defer func() {
 		returnStack(evmStack)
@@ -83,12 +83,14 @@ func (in *WASMInterpreter) BeforeState(relativePc uint64, opcode OpCodeInfo, sta
 	wasmLogger.CaptureWasmState(relativePc, opcode, memory, scope, in.evm.depth, 0, 0)
 }
 
-func (in *WASMInterpreter) AfterState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory *MemoryChangeInfo) {
+func (in *WASMInterpreter) AfterState(relativePc uint64, opcode OpCodeInfo, stack []uint64, memory []MemoryChangeInfo) {
 }
 
 func (in *WASMInterpreter) writeMemory(offset, size uint64, value []byte) {
-	// do honest write memory here
-	_ = in.wasmEngine.TraceMemoryChange(uint32(offset), uint32(size), value)
+	// we don't know does value's len matches size, to match EVM behavior we just create an empty array and copy data
+	value2 := make([]byte, size)
+	copy(value2, value)
+	_ = in.wasmEngine.TraceMemoryChange(uint32(offset), uint32(size), value2)
 }
 
 func (in *WASMInterpreter) readMemory(offset, size uint64) []byte {
@@ -631,19 +633,16 @@ func (in *WASMInterpreter) registerLogsCallback() {
 		l := &traceLog{}
 		_ = json.Unmarshal([]byte(jsonTrace), l)
 
-		var memoryChange *MemoryChangeInfo
-		if len(l.MemoryChanges) > 0 {
-			if len(l.MemoryChanges) > 1 {
-				panic("multiple memory changes are not supported yet")
-			}
-			data := l.MemoryChanges[0].Data
+		var memoryChanges []MemoryChangeInfo
+		for _, mc := range l.MemoryChanges {
+			data := mc.Data
 			if !strings.HasPrefix(data, "0x") {
 				data = "0x" + data
 			}
-			memoryChange = &MemoryChangeInfo{
-				Offset: l.MemoryChanges[0].Offset,
+			memoryChanges = append(memoryChanges, MemoryChangeInfo{
+				Offset: mc.Offset,
 				Value:  hexutil.MustDecode(data),
-			}
+			})
 		}
 		op := &wasmOpcodeInfo{
 			pc:     l.SourcePc,
@@ -656,7 +655,7 @@ func (in *WASMInterpreter) registerLogsCallback() {
 			evmStack.push(uint256.NewInt(l.Stack[i]))
 		}
 		scope := in.ScopeWithStack(evmStack)
-		wasmLogger.CaptureWasmState(uint64(l.Pc), op, memoryChange, scope, in.evm.depth, l.StackDrop, l.StackKeep)
+		wasmLogger.CaptureWasmState(uint64(l.Pc), op, memoryChanges, scope, in.evm.depth, l.StackDrop, l.StackKeep)
 		returnStack(evmStack)
 	})
 }

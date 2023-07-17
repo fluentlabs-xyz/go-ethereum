@@ -23,9 +23,7 @@ func (w WasmLog) MarshalJSON() ([]byte, error) {
 		Params        []uint64                    `json:"params,omitempty"`
 		Gas           math.HexOrDecimal64         `json:"gas"`
 		GasCost       math.HexOrDecimal64         `json:"gasCost"`
-		Memory        hexutil.Bytes               `json:"memory,omitempty"`
-		MemoryOffset  uint32                      `json:"memoryOffset,omitempty"`
-		MemorySize    uint32                      `json:"memSize"`
+		MemoryChanges map[uint32]hexutil.Bytes    `json:"memoryChanges,omitempty"`
 		Stack         []uint256.Int               `json:"stack"`
 		ReturnData    hexutil.Bytes               `json:"returnData,omitempty"`
 		Storage       map[common.Hash]common.Hash `json:"-"`
@@ -44,9 +42,12 @@ func (w WasmLog) MarshalJSON() ([]byte, error) {
 	enc.Params = w.Params
 	enc.Gas = math.HexOrDecimal64(w.Gas)
 	enc.GasCost = math.HexOrDecimal64(w.GasCost)
-	enc.Memory = w.Memory
-	enc.MemoryOffset = w.MemoryOffset
-	enc.MemorySize = w.MemorySize
+	if w.MemoryChanges != nil {
+		enc.MemoryChanges = make(map[uint32]hexutil.Bytes, len(w.MemoryChanges))
+		for k, v := range w.MemoryChanges {
+			enc.MemoryChanges[k] = hexutil.Bytes(v)
+		}
+	}
 	enc.Stack = w.Stack
 	enc.ReturnData = w.ReturnData
 	enc.Storage = w.Storage
@@ -69,9 +70,7 @@ func (w *WasmLog) UnmarshalJSON(input []byte) error {
 		Params        []uint64                    `json:"params,omitempty"`
 		Gas           *math.HexOrDecimal64        `json:"gas"`
 		GasCost       *math.HexOrDecimal64        `json:"gasCost"`
-		Memory        *hexutil.Bytes              `json:"memory,omitempty"`
-		MemoryOffset  *uint32                     `json:"memoryOffset,omitempty"`
-		MemorySize    *uint32                     `json:"memSize"`
+		MemoryChanges map[uint32]hexutil.Bytes    `json:"memoryChanges,omitempty"`
 		Stack         []uint256.Int               `json:"stack"`
 		ReturnData    *hexutil.Bytes              `json:"returnData,omitempty"`
 		Storage       map[common.Hash]common.Hash `json:"-"`
@@ -103,14 +102,11 @@ func (w *WasmLog) UnmarshalJSON(input []byte) error {
 	if dec.GasCost != nil {
 		w.GasCost = uint64(*dec.GasCost)
 	}
-	if dec.Memory != nil {
-		w.Memory = *dec.Memory
-	}
-	if dec.MemoryOffset != nil {
-		w.MemoryOffset = *dec.MemoryOffset
-	}
-	if dec.MemorySize != nil {
-		w.MemorySize = *dec.MemorySize
+	if dec.MemoryChanges != nil {
+		w.MemoryChanges = make(map[uint32]string, len(dec.MemoryChanges))
+		for k, v := range dec.MemoryChanges {
+			w.MemoryChanges[k] = string(v)
+		}
 	}
 	if dec.Stack != nil {
 		w.Stack = dec.Stack

@@ -55,9 +55,7 @@ type WasmLog struct {
 	Params        []uint64                    `json:"params,omitempty"`
 	Gas           uint64                      `json:"gas"`
 	GasCost       uint64                      `json:"gasCost"`
-	Memory        []byte                      `json:"memory,omitempty"`
-	MemoryOffset  uint32                      `json:"memoryOffset,omitempty"`
-	MemorySize    uint32                      `json:"memSize"`
+	MemoryChanges map[uint32]string           `json:"memoryChanges,omitempty"`
 	Stack         []uint256.Int               `json:"stack"`
 	ReturnData    []byte                      `json:"returnData,omitempty"`
 	Storage       map[common.Hash]common.Hash `json:"-"`
@@ -77,12 +75,12 @@ type WasmFnCallLog struct {
 
 // overrides for gencodec
 type wasmLogMarshaling struct {
-	Gas         math.HexOrDecimal64
-	GasCost     math.HexOrDecimal64
-	Memory      hexutil.Bytes
-	ReturnData  hexutil.Bytes
-	OpName      string `json:"opName"`          // adds call to OpName() in MarshalJSON
-	ErrorString string `json:"error,omitempty"` // adds call to ErrorString() in MarshalJSON
+	Gas           math.HexOrDecimal64
+	GasCost       math.HexOrDecimal64
+	MemoryChanges map[uint32]hexutil.Bytes
+	ReturnData    hexutil.Bytes
+	OpName        string `json:"opName"`          // adds call to OpName() in MarshalJSON
+	ErrorString   string `json:"error,omitempty"` // adds call to ErrorString() in MarshalJSON
 }
 
 // OpName formats the operand name in a human-readable format.
@@ -188,7 +186,7 @@ func (l *WebAssemblyLogger) CaptureGlobalMemoryState(globalMemory map[uint32][]b
 func (l *WebAssemblyLogger) CaptureWasmState(
 	pc uint64,
 	op vm.OpCodeInfo,
-	memory *vm.MemoryChangeInfo,
+	memoryChanges []vm.MemoryChangeInfo,
 	scope *vm.ScopeContext,
 	depth int,
 	drop,
@@ -205,14 +203,12 @@ func (l *WebAssemblyLogger) CaptureWasmState(
 	}
 	stack := scope.Stack
 	// Copy a snapshot of the current memory state to a new buffer
-	var memData []byte
-	var memOffset uint32
-	var memLen uint32
-	if l.cfg.EnableMemory && memory != nil {
-		memData = make([]byte, len(memory.Value))
-		copy(memData, memory.Value)
-		memOffset = memory.Offset
-		memLen = uint32(len(memory.Value))
+	var memoryChanges2 map[uint32]string
+	if l.cfg.EnableMemory {
+		memoryChanges2 = make(map[uint32]string)
+		for _, mc := range memoryChanges {
+			memoryChanges2[mc.Offset] = hexutil.Encode(mc.Value)
+		}
 	}
 	// Copy a snapshot of the current stack state to a new buffer
 	var stck []uint256.Int
@@ -230,9 +226,7 @@ func (l *WebAssemblyLogger) CaptureWasmState(
 		[]uint64{},
 		scope.Contract.Gas,
 		0,
-		memData,
-		memOffset,
-		memLen,
+		memoryChanges2,
 		stck,
 		nil,
 		nil,
@@ -267,9 +261,7 @@ func (l *WebAssemblyLogger) CaptureGasState(gasCost uint64, scope *vm.ScopeConte
 		// total gas that is consumed by next WASM operations
 		gasCost,
 		// copy memory state from last log
-		lastLog.Memory,
-		lastLog.MemoryOffset,
-		lastLog.MemorySize,
+		lastLog.MemoryChanges,
 		// remove/replace last stack item because it contains gas spent that we copied to the gas cost section
 		lastLog.Stack,
 		[]byte{},
@@ -410,9 +402,7 @@ func (l *WebAssemblyLogger) CaptureState(pc uint64, op vm.OpCode, gas, cost uint
 		gas,
 		cost,
 		// copy memory from last state
-		lastLog.Memory,
-		lastLog.MemoryOffset,
-		lastLog.MemorySize,
+		lastLog.MemoryChanges,
 		lastLog.Stack,
 		rdata,
 		storage,
@@ -558,10 +548,11 @@ func FormatWasmLogs(logs []WasmLog) []WasmLogRes {
 			}
 			formatted[index].Stack = &stack
 		}
-		if trace.Memory != nil {
-			mem := hexutil.Encode(trace.Memory)
+		if trace.MemoryChanges != nil && len(trace.MemoryChanges) > 0 {
 			memoryChanges := make(map[uint32]string)
-			memoryChanges[trace.MemoryOffset] = mem
+			for k, v := range trace.MemoryChanges {
+				memoryChanges[k] = v
+			}
 			formatted[index].MemoryChanges = &memoryChanges
 		}
 		if trace.Storage != nil {
