@@ -56,7 +56,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/wasm0/zkwasm-gas-injector v0.0.0-20230417162546-ab3ab673b1f7
-	github.com/wasm0/zkwasm-wasmi v0.0.0-20230609142325-43ac6fe6388c
+	github.com/wasm0/zkwasm-wasmi v0.0.0-20230731194435-19fce47b7b0b
 	github.com/wasmerio/wasmer-go v1.0.4
 	golang.org/x/crypto v0.6.0
 	golang.org/x/sync v0.1.0
