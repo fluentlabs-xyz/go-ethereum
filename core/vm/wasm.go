@@ -353,7 +353,7 @@ func (in *WASMInterpreter) Run(
 
 type wasmOpcodeInfo struct {
 	pc     uint32
-	opcode byte
+	opcode uint16
 	name   string
 	params []uint64
 }
@@ -361,7 +361,7 @@ type wasmOpcodeInfo struct {
 func (i *wasmOpcodeInfo) String() string {
 	return i.name
 }
-func (i *wasmOpcodeInfo) Code() byte {
+func (i *wasmOpcodeInfo) Code() uint16 {
 	return i.opcode
 }
 func (i *wasmOpcodeInfo) GetParams() []uint64 {
@@ -622,7 +622,7 @@ func (in *WASMInterpreter) registerLogsCallback() {
 		type traceLog struct {
 			Pc            uint32        `json:"pc"`
 			SourcePc      uint32        `json:"source_pc"`
-			Opcode        uint8         `json:"opcode"`
+			Opcode        uint16        `json:"opcode"`
 			Name          string        `json:"name"`
 			StackDrop     uint32        `json:"stack_drop,omitempty"`
 			StackKeep     uint32        `json:"stack_keep,omitempty"`

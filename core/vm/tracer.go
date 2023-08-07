@@ -2,7 +2,7 @@ package vm
 
 type OpCodeInfo interface {
 	String() string
-	Code() byte
+	Code() uint16
 	GetParams() []uint64
 	Pc() uint64
 }

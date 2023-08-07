@@ -86,7 +86,7 @@ type wasmLogMarshaling struct {
 // OpName formats the operand name in a human-readable format.
 func (s *WasmLog) OpName() string {
 	if s.OpFamily == OpCodeFamilyWASM {
-		opName, ok := vm.WasmOpCodeToName[wasm.Opcode(s.Op.Code())]
+		opName, ok := vm.WasmOpCodeToName[s.Op.Code()]
 		if !ok {
 			return fmt.Sprintf("unknown opcode name: (code=0x%x, family=%s)", s.Op.Code(), s.Op.String())
 		}
@@ -168,7 +168,7 @@ func (l *WebAssemblyLogger) CaptureGlobalVariable(index uint64, op vm.OpCodeInfo
 	}
 	if op != nil {
 		global.Pc = op.Pc()
-		global.Op = vm.WasmOpCodeToName[wasm.Opcode(op.Code())]
+		global.Op = vm.WasmOpCodeToName[op.Code()]
 		global.Params = op.GetParams()
 	}
 	l.globals = append(l.globals, global)
@@ -284,14 +284,14 @@ func (l *WebAssemblyLogger) CaptureWasmFunctionCall(fnIndex, maxStackHeight, num
 	})
 }
 
-type GasOpCodeInfo byte
+type GasOpCodeInfo uint16
 
 func (i GasOpCodeInfo) String() string {
 	return "gas"
 }
 
-func (i GasOpCodeInfo) Code() byte {
-	return byte(i)
+func (i GasOpCodeInfo) Code() uint16 {
+	return uint16(i)
 }
 
 func (i GasOpCodeInfo) GetParams() []uint64 {
@@ -302,14 +302,14 @@ func (i GasOpCodeInfo) Pc() uint64 {
 	return 0
 }
 
-type EvmOpCodeInfo byte
+type EvmOpCodeInfo uint16
 
 func (i EvmOpCodeInfo) String() string {
 	return vm.OpCode(i).String()
 }
 
-func (i EvmOpCodeInfo) Code() byte {
-	return byte(i)
+func (i EvmOpCodeInfo) Code() uint16 {
+	return uint16(i)
 }
 
 func (i EvmOpCodeInfo) GetParams() []uint64 {
