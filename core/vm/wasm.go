@@ -275,7 +275,7 @@ func (in *WASMInterpreter) Run(
 	type traceLog struct {
 		Pc            uint32        `json:"pc"`
 		SourcePc      uint32        `json:"source-pc"`
-		Opcode        uint8         `json:"opcode"`
+		Opcode        uint16        `json:"opcode"`
 		Name          string        `json:"name"`
 		StackDrop     uint32        `json:"stack_drop,omitempty"`
 		StackKeep     uint32        `json:"stack_keep,omitempty"`
